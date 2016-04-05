@@ -14,7 +14,7 @@
 #pragma config FSOSCEN = OFF // turn off secondary oscillator
 #pragma config IESO = OFF // no switching clocks
 #pragma config POSCMOD = HS // high speed crystal mode
-#pragma config OSCIOFNC = OFF  // free up secondary osc pins
+#pragma config OSCIOFNC = OFF // free up secondary osc pins
 #pragma config FPBDIV = DIV_1 // divide CPU freq by 1 for peripheral bus clock
 #pragma config FCKSM = CSDCMD // do not enable clock switch
 #pragma config WDTPS = PS1048576 // slowest wdt
@@ -30,7 +30,7 @@
 #pragma config UPLLEN = ON // USB clock on
 
 // DEVCFG3
-#pragma config USERID = Ox8888 // some 16bit userid, doesn't matter what
+#pragma config USERID = 0 // some 16bit userid, doesn't matter what
 #pragma config PMDL1WAY = OFF // allow multiple reconfigurations
 #pragma config IOL1WAY = OFF // allow multiple reconfigurations
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
@@ -59,10 +59,20 @@ int main() {
     
     __builtin_enable_interrupts();
     
-    while(1) {
-	    // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
-		// remember the core timer runs at half the CPU speed
+    while(1) {    
+    // reset timer
+        _CP0_SET_COUNT(0);
+    // stop for every 0.5 ms
+        while(_CP0_GET_COUNT() < 12000) { 
+            ;
+        }
+    // LED stops blinking when button pushed
+        if (PORTBbits.RB4 == 0) {
+            LATAbits.LATA4 = 1; 
+        }
+    // Blinking otherwise
+        else {
+            LATAINV = 0x10; 
+        }
     }
-    
-    
 }
