@@ -8838,12 +8838,17 @@ Standard 5-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 </net>
 <net name="MCLR" class="0">
 <segment>
+<pinref part="+3V3" gate="G$1" pin="+3V3"/>
 <pinref part="J2" gate="G$1" pin="1"/>
+<wire x1="187.96" y1="68.58" x2="187.96" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="187.96" y1="58.42" x2="187.96" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="187.96" y1="55.88" x2="172.72" y2="55.88" width="0.1524" layer="91"/>
 <junction x="187.96" y="55.88"/>
 <label x="172.72" y="55.88" size="1.778" layer="95"/>
+<pinref part="R3" gate="G$1" pin="2"/>
+<junction x="187.96" y="68.58"/>
 <pinref part="R3" gate="G$1" pin="1"/>
+<junction x="187.96" y="58.42"/>
 </segment>
 <segment>
 <pinref part="U$1" gate="G$1" pin="1.MCLR"/>
@@ -9073,10 +9078,6 @@ Standard 5-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <pinref part="+3V4" gate="G$1" pin="+3V3"/>
 <wire x1="132.08" y1="12.7" x2="149.86" y2="12.7" width="0.1524" layer="91"/>
 </segment>
-<segment>
-<pinref part="+3V3" gate="G$1" pin="+3V3"/>
-<pinref part="R3" gate="G$1" pin="2"/>
-</segment>
 </net>
 <net name="N$4" class="0">
 <segment>
@@ -9095,10 +9096,7 @@ Standard 5-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <net name="N$1" class="0">
 <segment>
 <pinref part="U$5" gate="G$1" pin="1.OSC1"/>
-<wire x1="-33.02" y1="-12.7" x2="-5.08" y2="-12.7" width="0.1524" layer="91"/>
-<pinref part="U$1" gate="G$1" pin="9.A2"/>
-<wire x1="-5.08" y1="-12.7" x2="-2.54" y2="-12.7" width="0.1524" layer="91"/>
-<junction x="-5.08" y="-12.7"/>
+<wire x1="-33.02" y1="-12.7" x2="-2.54" y2="-12.7" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$2" class="0">
@@ -9106,10 +9104,7 @@ Standard 5-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <pinref part="U$5" gate="G$1" pin="3.OSC2"/>
 <wire x1="-33.02" y1="-22.86" x2="-17.78" y2="-22.86" width="0.1524" layer="91"/>
 <wire x1="-17.78" y1="-22.86" x2="-17.78" y2="-17.78" width="0.1524" layer="91"/>
-<wire x1="-17.78" y1="-17.78" x2="-5.08" y2="-17.78" width="0.1524" layer="91"/>
-<pinref part="U$1" gate="G$1" pin="10.A3"/>
-<wire x1="-5.08" y1="-17.78" x2="-2.54" y2="-17.78" width="0.1524" layer="91"/>
-<junction x="-5.08" y="-17.78"/>
+<wire x1="-17.78" y1="-17.78" x2="-2.54" y2="-17.78" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
