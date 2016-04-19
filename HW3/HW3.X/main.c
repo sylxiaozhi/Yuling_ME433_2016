@@ -39,6 +39,18 @@
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
 #define CS LATBbits.LATB8       // chip select pin
+#define PI 3.14159
+
+static volatile float SineWaveform[5000];
+static volatile float TriangularWaveform[2500];
+
+void makeSinWave();
+void makeTriangularWave();
+char SPI1_IO(char write);
+void setVoltage(char channel, int voltage);
+void SPI_init();
+
+
 
 int main() {
     
@@ -62,100 +74,95 @@ int main() {
     
     __builtin_enable_interrupts();
     
+    SPI_init;
+    makeSinWave();
+    makeTriangularWave();
     
-    // send a byte via spi and return the response
-    unsigned char spi_io(unsigned char o) {
-        SPI4BUF = o;
-        while(!SPI4STATbits.SPIRBF) { // wait to receive the byte
+    int sincount = 0;
+    int tricount = 0;
+    
+    while(1) {
+        
+        setVoltage(0,SineWaveform[sincount]);
+        setVoltage(1,TriangularWaveform[tricount]);
+
+        // reset timer
+        _CP0_SET_COUNT(0);
+        // stop for every 0.001 ms
+        while(_CP0_GET_COUNT() < 12000) {
             ;
         }
-        return SPI4BUF;
-    }
-    
-    // initialize spi4 and the ram module
-    void ram_init() {
-        // set up the chip select pin as an output
-        // the chip select pin is used by the sram to indicate
-        // when a command is beginning (clear CS to low) and when it
-        // is ending (set CS high)
-        TRISBbits.TRISB8 = 0;
-        CS = 1;
         
-        // Master - SPI4, pins are: SDI4(F4), SDO4(F5), SCK4(F13).
-        // we manually control SS4 as a digital output (F12)
-        // since the pic is just starting, we know that spi is off. We rely on defaults here
-        
-        // setup spi4
-        SPI4CON = 0;              // turn off the spi module and reset it
-        SPI4BUF;                  // clear the rx buffer by reading from it
-        SPI4BRG = 0x3;            // baud rate to 10 MHz [SPI4BRG = (80000000/(2*desired))-1]
-        SPI4STATbits.SPIROV = 0;  // clear the overflow bit
-        SPI4CONbits.CKE = 1;      // data changes when clock goes from hi to lo (since CKP is 0)
-        SPI4CONbits.MSTEN = 1;    // master operation
-        SPI4CONbits.ON = 1;       // turn on spi 4
-        
-        // send a ram set status command.
-        CS = 0;                   // enable the ram
-        spi_io(0x01);             // ram write status
-        spi_io(0x41);             // sequential mode (mode = 0b01), hold disabled (hold = 0)
-        CS = 1;                   // finish the command
-    }
-    
-    // write len bytes to the ram, starting at the address addr
-    void ram_write(unsigned short addr, const char data[], int len) {
-        int i = 0;
-        CS = 0;                        // enable the ram by lowering the chip select line
-        spi_io(0x2);                   // sequential write operation
-        spi_io((addr & 0xFF00) >> 8 ); // most significant byte of address
-        spi_io(addr & 0x00FF);         // the least significant address byte
-        for(i = 0; i < len; ++i) {
-            spi_io(data[i]);
+        if (sincount == 5000) {
+            sincount = 0;
         }
-        CS = 1;                        // raise the chip select line, ending communication
+        if (tricount == 2500) {
+            tricount = 0;
+        }
+
     }
+}
+
+void SPI_init() {
+    // set up the chip select pin as an output
+    // the chip select pin is used by the MCP4902DAC to indicate
+    // when a command is beginning (clear CS to low) and when it
+    // is ending (set CS high)
+    TRISBbits.TRISB7 = 0b0;
+    CS = 1;
+    SS1Rbits.SS1R = 0b0100;   // assign SS1 to RB7
+    SDI1Rbits.SDI1R = 0b0000; // assign SDI1 to RA1
+    RPB8Rbits.RPB8R = 0b0011; // assign SDO1 to RB8
+    ANSELBbits.ANSB14 = 0;    // turn off AN10
     
-    // read len bytes from ram, starting at the address addr
-    void ram_read(unsigned short addr, char data[], int len) {
-        int i = 0;
+    // setup SPI1
+    SPI1CON = 0;              // turn off the SPI1 module and reset it
+    SPI1BUF;                  // clear the rx buffer by reading from it
+    SPI1BRG = 0x1;            // baud rate to 12 MHz [SPI4BRG = (48000000/(2*desired))-1]
+    SPI1STATbits.SPIROV = 0;  // clear the overflow bit
+    SPI1CONbits.MODE32 = 0;   // use 8 bit mode
+    SPI1CONbits.MODE16 = 0;
+    SPI1CONbits.CKE = 1;      // data changes when clock goes from hi to lo (since CKP is 0)
+    SPI1CONbits.MSTEN = 1;    // master operation
+    SPI1CONbits.ON = 1;       // turn on SPI 1
+}
+
+char SPI1_IO(char write){
+    SPI1BUF = write;
+    while(!SPI1STATbits.SPIRBF) { // wait to receive the byte
+        ;
+    }
+    return SPI1BUF;
+}
+
+
+
+void makeSinWave(){
+    int i;
+    for(i = 0; i < 5000; i++){
+        SineWaveform[i] = (unsigned int)(255*sin(2*PI*i/5000)+128);
+    }
+}
+
+void makeTriangularWave(){
+    int i;
+    for(i = 0; i < 2500; i++){
+        TriangularWaveform[i] = (unsigned int)(255*(i/2500));
+    }
+}
+
+void setVoltage(char channel, int voltage){
+    int temp = voltage;
+    if(channel == 0) { // 0 for VoutA
         CS = 0;
-        spi_io(0x3);                   // ram read operation
-        spi_io((addr & 0xFF00) >> 8);  // most significant address byte
-        spi_io(addr & 0x00FF);         // least significant address byte
-        for(i = 0; i < len; ++i) {
-            data[i] = spi_io(0);         // read in the data
-        }
+        SPI1_IO((temp >> 4) | 0b01110000); // 4 configuration bits
+        SPI1_IO(temp << 4); // Data bits
         CS = 1;
     }
-    
-    int main(void) {
-        unsigned short addr1 = 0x1234;                  // the address for writing the ram
-        char data[] = "Help, I'm stuck in the RAM!";    // the test message
-        char read[] = "***************************";    // buffer for reading from ram
-        char buf[100];                                  // buffer for comm. with the user
-        unsigned char status;                           // used to verify we set the status
-        NU32_Startup();   // cache on, interrupts on, LED/button init, UART init
-        ram_init();
-        
-        // check the ram status
+    if(channel == 1) { // 1 for VoutB
         CS = 0;
-        spi_io(0x5);                                      // ram read status command
-        status = spi_io(0);                               // the actual status
+        SPI1_IO((temp >> 4) | 0b11110000); // 4 configuration bits
+        SPI1_IO(temp << 4); // Data bits
         CS = 1;
-        
-        sprintf(buf, "Status 0x%x\r\n",status);
-        NU32_WriteUART3(buf);
-        
-        sprintf(buf,"Writing \"%s\" to ram at address 0x%x\r\n", data, addr1);
-        NU32_WriteUART3(buf);
-        // write the data to the ram
-        ram_write(addr1, data, strlen(data) + 1);         // +1, to send the '\0' character
-        ram_read(addr1, read, strlen(data) + 1);          // read the data back
-        sprintf(buf,"Read \"%s\" from ram at address 0x%x\r\n", read, addr1);
-        NU32_WriteUART3(buf);
-        
-        while(1) {
-            ;
-        }
-        return 0;
     }
 }
