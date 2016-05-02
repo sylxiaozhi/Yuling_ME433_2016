@@ -1095,7 +1095,7 @@ LOAD /Applications/microchip/xc32/v1.40/bin/bin/../../lib/gcc/pic32mx/4.8.3/../.
 LOAD /Applications/microchip/xc32/v1.40/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib/libpic32.a
 END GROUP
 LOAD /Applications/microchip/xc32/v1.40/bin/bin/../../lib/gcc/pic32mx/4.8.3/libgcc.a
-OUTPUT(dist/default/production/HW4.X.production.elf elf32-tradlittlemips)
+OUTPUT(dist/default/production/HW5.X.production.elf elf32-tradlittlemips)
 LOAD stack
 LOAD data_init
 
