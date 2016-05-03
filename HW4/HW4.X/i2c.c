@@ -1,14 +1,31 @@
-#include "i2c_master_noint.h"
-#include <xc.h> 
-// I2C Master utilities, 100 kHz, using polling rather than interrupts
-// The functions must be callled in the correct order as per the I2C protocol
-// Change I2C1 to the I2C channel you are using
-// I2C pins need pull-up resistors, 2k-10k
+#include <xc.h>
+#include "i2c_master.h"
+
+char i2c_master_read(char reg_addr)
+{
+    char read_master;
+    i2c_master_start();
+    i2c_master_send((SLAVE_ADDR << 1) | 0); // writing
+    i2c_master_send(reg_addr);
+    i2c_master_restart();                   // send a RESTART to read
+    i2c_master_send((SLAVE_ADDR << 1) | 1); // reading
+    read_master = i2c_master_recv();        // receive a byte from the bus
+    i2c_master_ack(1);
+    i2c_master_stop();
+    return read_master;
+}
+
+void i2c_master_write(char reg_addr, char byte)
+{
+    i2c_master_start();
+    i2c_master_send((SLAVE_ADDR << 1) | 0); // writing
+    i2c_master_send(reg_addr);
+    i2c_master_send(byte);
+    i2c_master_stop();
+}
 
 void i2c_master_setup(void) {
-  I2C2BRG = 53;                    // I2CBRG = [1/(2*400kHz) - 104ns]*48MHz - 2 
-  ANSELBbits.ANSB2 = 0;             // turn off default analog pin B2
-  ANSELBbits.ANSB3 = 0;             // turn off default analog pin B3
+  I2C2BRG = 233; // for 100kHz;     // I2CBRG = [1/(2*Fsck) - PGD]*Pblck - 2 
   I2C2CONbits.ON = 1;               // turn on the I2C2 module
 }
 
@@ -26,9 +43,7 @@ void i2c_master_restart(void) {
 void i2c_master_send(unsigned char byte) { // send a byte to slave
   I2C2TRN = byte;                   // if an address, bit 0 = 0 for write, 1 for read
   while(I2C2STATbits.TRSTAT) { ; }  // wait for the transmission to finish
-  if(I2C2STATbits.ACKSTAT) {        // if this is high, slave has not acknowledged
-     
-  }
+  while(I2C2STATbits.ACKSTAT) {;}
 }
 
 unsigned char i2c_master_recv(void) { // receive a byte from the slave
@@ -45,6 +60,32 @@ void i2c_master_ack(int val) {        // sends ACK = 0 (slave should send anothe
 }
 
 void i2c_master_stop(void) {          // send a STOP:
-  I2C2CONbits.PEN = 1;                // comm is complete and master relinquishes bus
+  I2C2CONbits.PEN = 1;                // communication is complete and master relinquishes bus
   while(I2C2CONbits.PEN) { ; }        // wait for STOP to complete
+}
+
+void initExpander(char IO_dir)
+{
+    ANSELBbits.ANSB2 = 0;       // I2C2 analog off;
+    ANSELBbits.ANSB3 = 0;       // I2C2 analog off;
+    i2c_master_setup();
+    i2c_master_write(IODIR,IO_dir);
+}
+void setExpander(char pin, char level)
+{
+    char read_byte,write_byte;
+    read_byte = i2c_master_read(OLAT);
+    if (level==0)
+    {
+        write_byte = read_byte&~(pin);
+    }
+    else if (level==1)
+    {
+        write_byte = read_byte|pin;
+    }
+    i2c_master_write(OLAT,write_byte);
+}
+char getExpander()
+{
+    return i2c_master_read(GPIO);
 }
