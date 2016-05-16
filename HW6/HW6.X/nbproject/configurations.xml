@@ -36,6 +36,8 @@
       <compileType>
         <linkerTool>
           <linkerLibItems>
+            <linkerLibFileItem>i2c_master_noint.h</linkerLibFileItem>
+            <linkerLibFileItem>i2c_master_noint.c</linkerLibFileItem>
           </linkerLibItems>
         </linkerTool>
         <archiverTool>

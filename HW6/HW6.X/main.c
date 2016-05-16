@@ -1,6 +1,7 @@
-#include<xc.h>           // processor SFR definitions
-#include<sys/attribs.h>  // __ISR macro
-#include<math.h>
+#include <xc.h>           // processor SFR definitions
+#include <sys/attribs.h>  // __ISR macro
+#include <math.h>
+#include "i2c_master_noint.h"
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -37,164 +38,180 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
-#define CS LATBbits.LATB7
+#define CS LATBbits.LATB7  // chip select pin
+#define PI 3.14159265
+#define SLAVE_ADDR 0x6B
 
-static volatile float SineWave[200];   // sine waveform
-static volatile float TriangleWave[200];   // triangle waveform
+//the read data of temperature, gyroscope and accelerator
+static signed short temp;
+static signed short x_angular_rate;
+static signed short y_angular_rate;
+static signed short z_angular_rate;
+static signed short x_linear_accel;
+static signed short y_linear_accel;
+static signed short z_linear_accel;
 
-void MakeWave() {
+
+void __ISR(_TIMER_2_VECTOR, IPL5SOFT) PWMcontroller(void) { // step 1: the ISR
+    
+    //OC1RS = 1500;
+    OC1RS = 1500+1500*(x_linear_accel/32768.0);
+    OC2RS = 1500+1500*(y_linear_accel/32768.0);
+    
+    IFS0bits.T2IF = 0;
+}
+
+void init_accele(){
+    i2c_master_start();
+    i2c_master_send(0xD6);
+    i2c_master_send(0x10);
+    i2c_master_send(0x80);
+    i2c_master_stop();
+}
+
+void init_gyro(){
+    i2c_master_start();
+    i2c_master_send(0xD6);
+    i2c_master_send(0x11);
+    i2c_master_send(0x80);
+    i2c_master_stop();
+}
+
+void I2C_read_multiple(char address, char regis, unsigned char * data, char length){
+    i2c_master_start();
+    i2c_master_send(address << 1);
+    i2c_master_send(regis);
+    i2c_master_restart();
+    i2c_master_send(address << 1 | 1);
     int i;
-    for(i = 0; i < 200; i++) {
-		TriangleWave[i] = 255 * i / 200;
-		SineWave[i] = 127.5 + 127.5 * sin(2 * 3.1415926 * 10 * (i % 100) / 1000);
-	}       
+    for(i=0;i<length-1;i++) {
+        data[i]= i2c_master_recv();
+        i2c_master_ack(0);
+    }
+    data[length-1]= i2c_master_recv();
+    i2c_master_ack(1);
 }
 
-char SPI1_IO(short write) {
-    SPI1BUF = write;
-    while(!SPI1STATbits.SPIRBF) // wait to receive the byte
-        ;
-    return SPI1BUF; 
-}
-
-void SetVoltage(char channel, float voltage) {
-    int temp = voltage;
-	CS = 0;
-	SPI1_IO((channel << 15) | 0x7000 | (temp << 4)); 
-	CS = 1;
-}
-
-void initSPI1() {
-    TRISBbits.TRISB7 = 0;
-    CS = 1; 
-    SS1Rbits.SS1R = 0b0100; 
-    SDI1Rbits.SDI1R = 0b0100;
-    RPB13Rbits.RPB13R = 0b0011;  
-    SPI1CON = 0;              // turn off the SPI1 module and reset it
-    SPI1BUF;                  // clear the rx buffer by reading from it
-    SPI1BRG = 0x1;            // baud rate to 12 MHz [SPI4BRG = (48000000/(2*desired))-1]
-    SPI1STATbits.SPIROV = 0;  // clear the overflow bit
-    SPI1CONbits.MODE32 = 0;   // use 8 bit mode
-    SPI1CONbits.MODE16 = 1;
-    SPI1CONbits.CKE = 1; 
-    SPI1CONbits.MSTEN = 1;    // master operation  
-    SPI1CONbits.ON = 1;       // turn on spi 1
-}
-
-void i2c_master_setup(void) {
-  I2C2BRG = 233;            // I2CBRG = [1/(2*Fsck) - PGD]*Pblck - 2    53
-                                    // look up PGD for your PIC32
-  I2C2CONbits.ON = 1;               // turn on the I2C1 module
-}
-
-// Start a transmission on the I2C bus
-void i2c_master_start(void) {
-    I2C2CONbits.SEN = 1;            // send the start bit
-    while(I2C2CONbits.SEN) { ; }    // wait for the start bit to be sent
-}
-
-void i2c_master_restart(void) {     
-    I2C2CONbits.RSEN = 1;           // send a restart 
-    while(I2C2CONbits.RSEN) { ; }   // wait for the restart to clear
-}
-
-void i2c_master_send(char byte) { // send a byte to slave
-  I2C2TRN = byte;                   // if an address, bit 0 = 0 for write, 1 for read
-  while(I2C2STATbits.TRSTAT) { ; }  // wait for the transmission to finish
-  //if(I2C2STATbits.ACKSTAT) {        // if this is high, slave has not acknowledged
-      // ("I2C2 Master: failed to receive ACK\r\n");
-  //}
-}
-
-unsigned char i2c_master_recv(void) { // receive a byte from the slave
-    I2C2CONbits.RCEN = 1;             // start receiving data
-    while(!I2C2STATbits.RBF) { ; }    // wait to receive the data
-    return I2C2RCV;                   // read and return the data
-}
-
-void i2c_master_ack(int val) {        // sends ACK = 0 (slave should send another byte)
-                                      // or NACK = 1 (no more bytes requested from slave)
-    I2C2CONbits.ACKDT = val;          // store ACK/NACK in ACKDT
-    I2C2CONbits.ACKEN = 1;            // send ACKDT
-    while(I2C2CONbits.ACKEN) { ; }    // wait for ACK/NACK to be sent
-}
-
-void i2c_master_stop(void) {          // send a STOP:
-  I2C2CONbits.PEN = 1;                // comm is complete and master relinquishes bus
-  while(I2C2CONbits.PEN) { ; }        // wait for STOP to complete
-}
-
-void initI2C2() {
-    ANSELBbits.ANSB2 = 0;
-    ANSELBbits.ANSB3 = 0;
-    i2c_master_setup();
-}
-
-void initExpander() {
-    i2c_master_start(); // make the start bit
-    i2c_master_send(0x40); // write the address
-    i2c_master_send(0x00); // the register to write to
-    i2c_master_send(0xF0); // the value to put in the register
-    i2c_master_stop(); // make the stop bit
-}
-
-char getExpander() {   
-    i2c_master_start(); // make the start bit
-    i2c_master_send(0x40); // write the address, shifted left by 1, or'ed with a 0 to indicate writing
-    i2c_master_send(0x09); // the register to read from
-    i2c_master_restart(); // make the restart bit
-    i2c_master_send(0x41); // write the address, shifted left by 1, or'ed with a 1 to indicate reading
-    char r = i2c_master_recv() >> 7; // save the value returned
-    i2c_master_ack(1); // make the ack so the slave knows we got it
-    i2c_master_stop(); // make the stop bit
-    return r;
-}
-
-void setExpander(char pin, char level) {
-    i2c_master_start(); // make the start bit
-    i2c_master_send(0x40); // write the address
-    i2c_master_send(0x0A); // the register to write to
-    if (level == 1)
-        i2c_master_send(0b1);
-    else if (level == 0)
-        i2c_master_send(0b0);
-    i2c_master_stop(); // make the stop bit
-}
 
 int main() {
-	TRISAbits.TRISA4 = 0;  
-	LATAbits.LATA4 = 0;
-    TRISBbits.TRISB4 = 1; 
-    //__builtin_disable_interrupts();
-    // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
-    //__builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
-    // 0 data RAM access wait states
-    //BMXCONbits.BMXWSDRM = 0x0;
-    // enable multi vector interrupts
-    //INTCONbits.MVEC = 0x1;
-    // disable JTAG to get pins back
-    //DDPCONbits.JTAGEN = 0;   
-    // do your TRIS and LAT commands here 
-    //__builtin_enable_interrupts();
-    initSPI1();
-    MakeWave();
     
-    initI2C2();
-    initExpander();
+    __builtin_disable_interrupts();
+    
+    // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
+    __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
+    
+    // 0 data RAM access wait states
+    BMXCONbits.BMXWSDRM = 0x0;
+    
+    // enable multi vector interrupts
+    INTCONbits.MVEC = 0x1;
+    
+    // disable JTAG to get pins back
+    DDPCONbits.JTAGEN = 0;
+    
+    // do your TRIS and LAT commands here
+    TRISAbits.TRISA4=0;
+    TRISBbits.TRISB4=1;
+    
+    //spi_init();
+    i2c_master_setup();
+    //initExpander() ;
+    init_accele();
+    init_gyro();
+    
+    // for Timer2
+    PR2 = 2999;                   // period = (PR2+1) * N * 20.8 ns = 0.001 s, 1 kHz
+    TMR2 = 0;                     // initial TMR2 count is 0
+    T2CONbits.TCKPS = 0b100;      // Timer2 prescaler N=16 (1:16)
+    T2CONbits.ON = 1;             // turn on Timer2
+    
+    OC1CONbits.OCM = 0b110;       // PWM mode without fault pin; other OC1CON bits are defaults
+    OC1CONbits.ON = 1;            // turn on OC1
+    OC1CONbits.OC32 = 0;
+    OC1CONbits.OCTSEL = 0;        // select Timer2
+    
+    OC2CONbits.OCM = 0b110;       // PWM mode without fault pin; other OC1CON bits are defaults
+    OC2CONbits.ON = 1;            // turn on OC2
+    OC2CONbits.OC32 = 0;
+    OC2CONbits.OCTSEL = 0;        // select Timer2
+    
+    IPC2bits.T2IP = 5;            // step 4: interrupt priority
+    IPC2bits.T2IS = 0;            // step 4: interrupt priority
+    IFS0bits.T2IF = 0;            // step 5: clear the int flag
+    IEC0bits.T2IE = 1;            // step 6: enable Timer2 by setting IEC0<11>
+    
+    RPB15Rbits.RPB15R = 0b0101; // assign OC1 to RB15
+    RPA1Rbits.RPA1R = 0b0101; // assign OC2 to RA1
+    
+    __builtin_enable_interrupts();
+    
+    
+    LATAbits.LATA4=0;
+    
+    //01101011 6B
     
     while(1) {
-        static int count = 0;
-        if (_CP0_GET_COUNT() >= 24000) {
-            _CP0_SET_COUNT(0);
-            SetVoltage(0,SineWave[count]);   
-            SetVoltage(1,TriangleWave[count]);
-            count++;
-            if (count > 199)	
-            	count = 0;
+        
+        // intial test for the WHO AM I
+        /*
+         i2c_master_start();
+         i2c_master_send(0xD6); //0b11010110
+         01101011
+         i2c_master_send(0x0F);
+         i2c_master_restart();
+         i2c_master_send(0xD7); //0b11010111
+         unsigned char r;
+         r = i2c_master_recv();
+         i2c_master_ack(1);
+         i2c_master_stop();
+         */
+        /*
+         I2C_read_multiple(0x6B,0x0F,&r,1);
+         _CP0_SET_COUNT(0);
+         while(_CP0_GET_COUNT() < 12000) {
+         ;
+         }
+         
+         //0b01101001
+         if (r==0x69) {
+         LATAbits.LATA4=1;
+         }
+         */
+        unsigned char r;
+        unsigned char data[20];
+        //unsigned char ddx_high;
+        //unsigned char ddx_low;
+        //unsigned char r;
+        I2C_read_multiple(0x6B,0x0F,&r,1);
+        _CP0_SET_COUNT(0);
+        //I2C_read_multiple(0x6B,0x28,&ddx_low,1);
+        //I2C_read_multiple(0x6B,0x29,&ddx_high,1);
+        while(_CP0_GET_COUNT() < 120000) { // 50 Hz
+            ;
         }
-        if(getExpander() < 1)
-            setExpander(0, 1);
-        else 
-            setExpander(0, 0);
+        if (r==0x69) {
+            LATAbits.LATA4=1;
+        }
+        
+        I2C_read_multiple(0x6B,0x20,data,14);
+        
+        while(_CP0_GET_COUNT() < 240000) { // 50 Hz
+            ;
+        }
+        temp=data[1]<<8|data[0];
+        x_angular_rate=data[3]<<8|data[2];
+        y_angular_rate=data[5]<<8|data[4];
+        z_angular_rate=data[7]<<8|data[6];
+        x_linear_accel=data[9]<<8|data[8];
+        y_linear_accel=data[11]<<8|data[10];
+        z_linear_accel=data[13]<<8|data[12];
+        
+        
+        //x_linear_accel=ddx_high<<8|ddx_low;
+        //y_linear_accel=r;         
+        
+        
     }
+    
+    
 }
