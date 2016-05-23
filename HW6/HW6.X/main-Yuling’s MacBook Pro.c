@@ -129,7 +129,6 @@ int main() {
     OC1CONbits.ON = 1;            // turn on OC1
     OC1CONbits.OC32 = 0;
     OC1CONbits.OCTSEL = 0;        // select Timer2
-<<<<<<< HEAD
     
     OC2CONbits.OCM = 0b110;       // PWM mode without fault pin; other OC1CON bits are defaults
     OC2CONbits.ON = 1;            // turn on OC2
@@ -151,56 +150,6 @@ int main() {
     
     
     while(1) {
-=======
-    
-    OC2CONbits.OCM = 0b110;       // PWM mode without fault pin; other OC1CON bits are defaults
-    OC2CONbits.ON = 1;            // turn on OC2
-    OC2CONbits.OC32 = 0;
-    OC2CONbits.OCTSEL = 0;        // select Timer2
-    
-    IPC2bits.T2IP = 5;            // step 4: interrupt priority
-    IPC2bits.T2IS = 0;            // step 4: interrupt priority
-    IFS0bits.T2IF = 0;            // step 5: clear the int flag
-    IEC0bits.T2IE = 1;            // step 6: enable Timer2 by setting IEC0<11>
-    
-    RPB15Rbits.RPB15R = 0b0101; // assign OC1 to RB15
-    RPA1Rbits.RPA1R = 0b0101; // assign OC2 to RA1
-    
-    __builtin_enable_interrupts();
-    
-    
-    LATAbits.LATA4=0;
-    
-    //01101011 6B
-    
-    while(1) {
-        
-        // intial test for the WHO AM I
-        /*
-         i2c_master_start();
-         i2c_master_send(0xD6); //0b11010110
-         01101011
-         i2c_master_send(0x0F);
-         i2c_master_restart();
-         i2c_master_send(0xD7); //0b11010111
-         unsigned char r;
-         r = i2c_master_recv();
-         i2c_master_ack(1);
-         i2c_master_stop();
-         */
-        /*
-         I2C_read_multiple(0x6B,0x0F,&r,1);
-         _CP0_SET_COUNT(0);
-         while(_CP0_GET_COUNT() < 12000) {
-         ;
-         }
-         
-         //0b01101001
-         if (r==0x69) {
-         LATAbits.LATA4=1;
-         }
-         */
->>>>>>> Yuling
         unsigned char r;
         unsigned char data[20];
         //unsigned char ddx_high;
@@ -230,15 +179,7 @@ int main() {
         y_linear_accel=data[11]<<8|data[10];
         z_linear_accel=data[13]<<8|data[12];
         
-<<<<<<< HEAD
 
-=======
-        
-        //x_linear_accel=ddx_high<<8|ddx_low;
-        //y_linear_accel=r;         
-        
-        
->>>>>>> Yuling
     }
     
     

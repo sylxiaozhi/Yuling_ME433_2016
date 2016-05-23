@@ -1,15 +1,8 @@
-<<<<<<< HEAD
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
 #include<math.h>
 #include"ILI9163C.h"
 #include"i2c_master_noint.h"
-=======
-#include <xc.h>           // processor SFR definitions
-#include <sys/attribs.h>  // __ISR macro
-#include "ILI9163C.h"
-//#include "i2c_master_noint.h"
->>>>>>> Yuling
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -46,32 +39,12 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module                                                    //
 
-<<<<<<< HEAD
 char DataAlltemp[14];              // save 14 8 bit data?
 short DataAll[7] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 float DataValue[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 char Message[26];
-=======
-
-void draw_character(unsigned char character, unsigned short x_coord, unsigned short y_coord ){
-  int i=0;
-  int j=0;
-   
-  for (i=0;i<5;i++){
-      for (j=0;j<8;j++){
-        if (((ASCII[character-32][i])>> j & 1)==1){
-          LCD_drawPixel(x_coord+i, y_coord + j, 0xF800);
-        }
-        else {
-          LCD_drawPixel(x_coord+i, y_coord + j, 0xFFFF);
-        }
-      }
-  }
-}
->>>>>>> Yuling
 
 
-<<<<<<< HEAD
 void initI2C2() {
     ANSELBbits.ANSB2 = 0;
     ANSELBbits.ANSB3 = 0;
@@ -157,11 +130,6 @@ void __ISR(_TIMER_3_VECTOR, IPL5SOFT) PWMcontroller(void) {                     
      
     IFS0bits.T3IF = 0;
 }
-=======
-
- 
-    __builtin_disable_interrupts();
->>>>>>> Yuling
 
 int main() {
     __builtin_disable_interrupts();
@@ -197,7 +165,6 @@ int main() {
    
     SPI1_init();
     LCD_init();
-<<<<<<< HEAD
     
     LCD_clearScreen(WHITE);
     sprintf(Message, "Hello world %d!" , 1337);   
@@ -214,24 +181,5 @@ int main() {
     
     while(1){
         
-=======
-    LCD_clearScreen(0xFFFF);
-    //display the string 
-    char message[20]; 
-    int number=1337;
-    sprintf(message,"Hello world %d!",number);
-    
-    int k = 0; 
-    while(message[k]){
-        draw_character(message[k],0x001C+5*k,0x0020); 
-        k++;
-    }
-    
-    __builtin_enable_interrupts();
-    
-    while(1) {
-      ;
-       
->>>>>>> Yuling
     }
 }
