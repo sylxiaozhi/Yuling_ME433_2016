@@ -1,6 +1,7 @@
-#include<xc.h>           // processor SFR definitions
-#include<sys/attribs.h>  // __ISR macro
+#include <xc.h>           // processor SFR definitions
+#include <sys/attribs.h>  // __ISR macro
 #include "ILI9163C.h"
+//#include "i2c_master_noint.h"
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -37,10 +38,27 @@
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
 #pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
 
-void draw_character(unsigned char character, unsigned short x_pos, unsigned short y_pos);
+
+void draw_character(unsigned char character, unsigned short x_coord, unsigned short y_coord ){
+  int i=0;
+  int j=0;
+   
+  for (i=0;i<5;i++){
+      for (j=0;j<8;j++){
+        if (((ASCII[character-32][i])>> j & 1)==1){
+          LCD_drawPixel(x_coord+i, y_coord + j, 0xF800);
+        }
+        else {
+          LCD_drawPixel(x_coord+i, y_coord + j, 0xFFFF);
+        }
+      }
+  }
+}
 
 int main() {
 
+
+ 
     __builtin_disable_interrupts();
 
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
@@ -62,44 +80,21 @@ int main() {
     SPI1_init();
     LCD_init();
     LCD_clearScreen(0xFFFF);
-    draw_character('H',0x0014,0x0014);
-
+    //display the string 
+    char message[20]; 
+    int number=1337;
+    sprintf(message,"Hello world %d!",number);
     
-    
-    
-    
+    int k = 0; 
+    while(message[k]){
+        draw_character(message[k],0x001C+5*k,0x0020); 
+        k++;
+    }
     
     __builtin_enable_interrupts();
     
     while(1) {
-      _CP0_SET_COUNT(0);
-      if (PORTBbits.RB4 == 1) {// reads 1 when button released
-        LATAbits.LATA4=0;
-        while (_CP0_GET_COUNT()<12000) {
-        } 
-        LATAbits.LATA4=1;
-        while (_CP0_GET_COUNT()<24000) {
-        }   
-      } else { // stop blinking when button pushed 
-        LATAbits.LATA4=1;
-      } 
+      ;
+       
     }
-	    // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
-		// remember the core timer runs at half the CPU speed  
-}
-
-void draw_character(unsigned char character, unsigned short x_pos, unsigned short y_pos ){
-  int i=0;
-  int j=0;
-   
-  for (i=0;i<5;i++){
-      for (j=0;j<8;j++){
-        if (((ASCII[character-32][i])>> j & 1)==1){
-          LCD_drawPixel(x_pos+i, y_pos + j, 0xF800);
-        }
-        else {
-          LCD_drawPixel(x_pos+i, y_pos + j, 0xFFFF);
-        }
-      }
-  }
 }
