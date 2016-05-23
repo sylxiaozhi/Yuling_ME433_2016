@@ -38,6 +38,8 @@
           <linkerLibItems>
             <linkerLibFileItem>ILI9163C.h</linkerLibFileItem>
             <linkerLibFileItem>ILI9163C.c</linkerLibFileItem>
+            <linkerLibFileItem>i2c_master_noint.h</linkerLibFileItem>
+            <linkerLibFileItem>i2c_master_noint.c</linkerLibFileItem>
           </linkerLibItems>
         </linkerTool>
         <archiverTool>

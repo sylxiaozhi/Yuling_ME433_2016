@@ -28,7 +28,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+<<<<<<< HEAD
 //                progressChanged = progress;
+=======
+<<<<<<< HEAD
+                progressChanged = progress;
+=======
+//                progressChanged = progress;
+>>>>>>> Yuling
+>>>>>>> newbranch
                 myTextView.setText("The value is: "+progress);
 
             }

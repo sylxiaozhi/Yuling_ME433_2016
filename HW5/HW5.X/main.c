@@ -1,7 +1,21 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+#include<xc.h>           // processor SFR definitions
+#include<sys/attribs.h>  // __ISR macro
+#include<math.h>
+#include"ILI9163C.h"
+#include"i2c_master_noint.h"
+=======
+>>>>>>> newbranch
 #include <xc.h>           // processor SFR definitions
 #include <sys/attribs.h>  // __ISR macro
 #include "ILI9163C.h"
 //#include "i2c_master_noint.h"
+<<<<<<< HEAD
+=======
+>>>>>>> Yuling
+>>>>>>> newbranch
 
 // DEVCFG0
 #pragma config DEBUG = OFF // no debugging
@@ -36,8 +50,9 @@
 #pragma config PMDL1WAY = OFF // allow multiple reconfigurations
 #pragma config IOL1WAY = OFF // allow multiple reconfigurations
 #pragma config FUSBIDIO = ON // USB pins controlled by USB module
-#pragma config FVBUSONIO = ON // USB BUSON controlled by USB module
+#pragma config FVBUSONIO = ON // USB BUSON controlled by USB module                                                    //
 
+<<<<<<< HEAD
 
 void draw_character(unsigned char character, unsigned short x_coord, unsigned short y_coord ){
   int i=0;
@@ -54,31 +69,183 @@ void draw_character(unsigned char character, unsigned short x_coord, unsigned sh
       }
   }
 }
+=======
+<<<<<<< HEAD
+char DataAlltemp[14];              // save 14 8 bit data?
+short DataAll[7] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+float DataValue[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+char Message[26];
+=======
+>>>>>>> newbranch
 
-int main() {
+void draw_character(unsigned char character, unsigned short x_coord, unsigned short y_coord ){
+  int i=0;
+  int j=0;
+   
+  for (i=0;i<5;i++){
+      for (j=0;j<8;j++){
+        if (((ASCII[character-32][i])>> j & 1)==1){
+          LCD_drawPixel(x_coord+i, y_coord + j, 0xF800);
+        }
+        else {
+          LCD_drawPixel(x_coord+i, y_coord + j, 0xFFFF);
+        }
+      }
+  }
+}
+>>>>>>> Yuling
 
+
+<<<<<<< HEAD
+void initI2C2() {
+    ANSELBbits.ANSB2 = 0;
+    ANSELBbits.ANSB3 = 0;
+    i2c_master_setup();
+}
+
+void initSensor() {
+    i2c_master_start(); // make the start bit
+    i2c_master_send(0b11010110); // write the address
+    i2c_master_send(0x10); // the register to write to
+    i2c_master_send(0x80); // the value to put in the register
+    i2c_master_stop(); // make the stop bit
+    i2c_master_start(); // make the start bit
+    i2c_master_send(0b11010110); // write the address
+    i2c_master_send(0x11); // the register to write to
+    i2c_master_send(0x80); // the value to put in the register
+    i2c_master_stop(); // make the stop bit
+	i2c_master_start(); // make the start bit
+    i2c_master_send(0b11010110); // write the address
+    i2c_master_send(0x12); // the register to write to
+    i2c_master_send(0x04); // the value to put in the register
+    i2c_master_stop(); // make the stop bit
+}
+    
+void I2C_read_multiple(char address, char regadd, char * data, char length) {
+    unsigned char * temp;
+    int j;
+    temp = data;
+    i2c_master_start(); // make the start bit
+    i2c_master_send(address << 1 | 0b0); // write the address, shifted left by 1, or'ed with a 0 to indicate writing
+    i2c_master_send(regadd); // the register to read from
+    i2c_master_restart(); // make the restart bit
+    i2c_master_send(address << 1 | 0b1); // write the address, shifted left by 1, or'ed with a 1 to indicate reading  
+    for (j = 0; j < (length - 1); j++) {
+        * (temp + j) = i2c_master_recv();
+        i2c_master_ack(0);
+    }
+    * (temp + j)= i2c_master_recv();
+    i2c_master_ack(1); // make the ack so the slave knows we got it
+    i2c_master_stop(); // make the stop bit
+}
+
+<<<<<<< HEAD
+=======
+void display_char (unsigned short x, unsigned short y, char c, unsigned short color) {
+    int m, n;
+    char temp;
+    if ((x < 122) & (y < 119)) {
+        for (m = 0; m < 5; m++){
+            temp = ASCII[c - 32][m];
+            for (n = 0; n < 8; n++) {              
+                if (temp % 2 == 1)
+                    LCD_drawPixel(x + m, y + n, color);
+                temp = temp / 2;
+            }         
+        } 
+    }
+}
+
+void display_message (unsigned short x, unsigned short y, char * array, unsigned short color) {
+    int p = 0; 
+    while (* (array + p)) {
+        display_char ((x + 5 * p), y, * (array + p), color); 
+        p++;
+    }
+}
+
+void __ISR(_TIMER_3_VECTOR, IPL5SOFT) PWMcontroller(void) {                       //?
+    int i;
+    I2C_read_multiple(0b1101011, 0x20, DataAlltemp, 14); 
+    LCD_setAddr(58, 41, 90, 121);
+	for (i = 0;i < (32 * 80); i++){
+		LCD_data16(WHITE);
+	}
+    for (i = 0; i < 7; i++) {
+        sprintf(Message, "%6.2f", DataValue[i]);
+        display_message (58, (41 + 9 * i), Message, BLUE); 
+        DataAll[i] = ((DataAlltemp[2 * i + 1] << 8) | DataAlltemp[2 * i]);
+    } 
+        DataValue[0] = 25 + (DataAll[0] / 16.0);
+    for (i = 0; i < 3; i++) {
+        DataValue[i + 1] = 245 * DataAll[i + 1] / 32768.0;
+        DataValue[i + 4] = 2 * 10 * DataAll[i + 4] / 32768.0;
+    }
+     
+    IFS0bits.T3IF = 0;
+}
+=======
+>>>>>>> newbranch
 
  
     __builtin_disable_interrupts();
+>>>>>>> Yuling
 
+int main() {
+    __builtin_disable_interrupts();
+    
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
     __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
-
     // 0 data RAM access wait states
     BMXCONbits.BMXWSDRM = 0x0;
-
     // enable multi vector interrupts
     INTCONbits.MVEC = 0x1;
-
     // disable JTAG to get pins back
-    DDPCONbits.JTAGEN = 0;
-    
+    DDPCONbits.JTAGEN = 0;    
     // do your TRIS and LAT commands here
-    TRISAbits.TRISA4=0;
-    TRISBbits.TRISB4=1;
+    TRISAbits.TRISA4 = 0;  
+	LATAbits.LATA4 = 0;
+    TRISBbits.TRISB4 = 1; 
     
+    //T3CONbits.TCKPS = 0b111;     // Timer3 prescaler  (1:64)
+	//PR3 = 14999;                    //             set period register
+    T3CONbits.TCKPS = 0b111;     // Timer3 prescaler  (1:256)
+	PR3 = 9374;                    //             set period register   20hz
+    
+	TMR3 = 0;                      //             initialize count to 0
+	T3CONbits.ON = 1;          //             turn on Timer3
+	
+	IPC3bits.T3IP = 5;              // INT step 4: priority
+	IPC3bits.T3IS = 0;              //             subpriority
+	IFS0bits.T3IF = 0;              // INT step 5: clear interrupt flag
+	IEC0bits.T3IE = 1;              // INT step 6: enable interrupt
+ 
+    initI2C2(); 
+    initSensor();
+   
     SPI1_init();
     LCD_init();
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    
+    LCD_clearScreen(WHITE);
+    sprintf(Message, "Hello world %d!" , 1337);   
+    display_message (28, 32, Message, BLUE);      
+    display_message (28, 41, "Temp:", BLUE);
+    display_message (28, 50, "g_x:", BLUE);
+    display_message (28, 59, "g_y:", BLUE);   
+    display_message (28, 68, "g_z:", BLUE);
+    display_message (28, 77, "a_x:", BLUE);
+    display_message (28, 86, "a_y:", BLUE);   
+    display_message (28, 95, "a_z:", BLUE);
+    
+    __builtin_enable_interrupts();
+    
+    while(1){
+        
+=======
+>>>>>>> newbranch
     LCD_clearScreen(0xFFFF);
     //display the string 
     char message[20]; 
@@ -96,5 +263,9 @@ int main() {
     while(1) {
       ;
        
+<<<<<<< HEAD
+=======
+>>>>>>> Yuling
+>>>>>>> newbranch
     }
 }

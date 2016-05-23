@@ -4,14 +4,34 @@
     <memory name="program">                 
       <units>bytes</units>                 
       <length>132240</length>                 
+<<<<<<< HEAD
       <used>20852</used>                     
       <free>111388</free>                     
+=======
+<<<<<<< HEAD
+      <used>20852</used>                     
+      <free>111388</free>                     
+=======
+      <used>12336</used>                     
+      <free>119904</free>                     
+>>>>>>> Yuling
+>>>>>>> newbranch
     </memory>                              
     <memory name="data">              
       <units>bytes</units>                 
       <length>32768</length>                 
+<<<<<<< HEAD
       <used>388</used>                     
       <free>32380</free>                     
+=======
+<<<<<<< HEAD
+      <used>388</used>                     
+      <free>32380</free>                     
+=======
+      <used>300</used>                     
+      <free>32468</free>                     
+>>>>>>> Yuling
+>>>>>>> newbranch
     </memory>                              
   </executable>                            
 </project>                                 
