@@ -1,0 +1,8 @@
+Camera:
+The camera detects if a pixel is part of the line by two conditions. The first condition compares the red RGB value of the pixel to both green and blue. When red is greater than both green and blue, the condition passed. The second condition triggers afterwards that to verify if the red RGB value is greater than the threshhold value (by default is 80) or not. When the red RGB value is greater than 80, the second condition passes and the pixel is considered as part of the line. One slidebar has been used to adjust the threshhold value for second condition. By default it is 80, but with adjustions of the slidebar the threshhold value can be any number from 0 to 200.
+
+Camera to PIC:
+Only the center of mass value (COM) has been sent to the PIC.
+
+PIC:
+The pic receives the COM value and it will determine how the speed shall be based on that. When COM is greater than 320 (which means COM is right to the car), left tier will be set at a bigger speed, and vice versa. The main PWM is controlled with P controller and a slight D controlled has been applied for stability.
